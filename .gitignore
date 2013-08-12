@@ -1,0 +1,8 @@
+.*.sw[po]
+*.pyc
+__pycache__/
+tags
+ve/
+*.wav
+*.mp3
+.ropeproject
