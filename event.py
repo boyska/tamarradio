@@ -1,8 +1,13 @@
 import os
 from datetime import datetime
 import functools
+import heapq
 import logging
 logger = logging.getLogger(__name__)
+
+from PyQt4 import QtCore
+
+from controller import get_config
 
 
 def time_parse(s):
@@ -10,6 +15,11 @@ def time_parse(s):
 
 
 class EventLoader:
+    '''Discovers new events definition and produces ready-to-play Bells (that
+    is, their action is not dependent on slow I/O operations such as network
+    access)'''
+    new_event = QtCore.pyqtSignal()
+
     def __init__(self, path):
         self.events = set()
         self.path = path
@@ -26,16 +36,16 @@ class EventLoader:
                         try:
                             base = f.split('.')[1]
                             date = time_parse(base)
-                            ev = Event(Alarm(date), os.path.join(root, f))
+                            ev = Bell(date, os.path.join(root, f))
                             if ev not in self.events:
-                                yield ev
+                                self.new_event(ev)
                         except Exception as exc:
                             logger.debug("Event %s skipped: %s" % (f, exc))
                             pass
 
 
 @functools.total_ordering
-class Event:
+class Bell:
     def __init__(self, alarm, action):
         self.alarm = alarm
         self.action = action
@@ -51,17 +61,33 @@ class Event:
         return 'Event <%s, %s>' % (self.name, str(self.time))
 
 
-@functools.total_ordering
-class Alarm:
-    def __init__(self, time):
-        self.time = time
+class EventMonitor(QtCore.QObject):
+    '''When a new ready-to-play Event is available, handle it: that is, trigger
+    its alarm at the right moment
+    '''
+    event_now = QtCore.pyqtSignal(Bell)
 
-    def __lt__(self, other):
-        # a duck is crying for this "isinstance"
-        # wait: it's not a duck, but it squasw like a duck...
-        if(isinstance(other, datetime)):
-            return self.time < other
-        return self.time < other.time
+    def __init__(self, controller):
+        self.controller = controller
+        self.worker = None  # maintain a LoaderWorker
+        self.worker.event_ready.connect(self.handle_event_ready)
+        self.event_queue = []
 
-    def __str__(self):
-        return 'Alarm <%s>' % (str(self.time))
+        for i in range(get_config().preload_number):
+            self.preload_another()
+
+        self.events = []  # heapq of ALL events
+        #TODO: load events
+
+    def preload_another(self):
+        #TODO: refresh list of events
+        if not self.events:
+            logger.debug("No events")
+            return
+        ev = heapq.heappop(self.events)
+        logger.debug("Preloading %s; queuing" % str(ev))
+        self.worker_queue.push(ev)
+
+    #TODO: gestisci gli eventi e i loro timer
+    def handle_event_ready(self, event):
+        heapq.heappush(self.event_queue, event)

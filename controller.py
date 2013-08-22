@@ -1,4 +1,3 @@
-import heapq
 import logging
 logger = logging.getLogger(__name__)
 
@@ -7,40 +6,11 @@ from PyQt4 import QtCore
 from player import QtPlayer
 from bobina import Bobina
 import config
-from event import Event
+from event import EventMonitor
 
 
 def get_config():
     return config
-
-
-class EventMonitor(QtCore.QObject):
-    event_now = QtCore.pyqtSignal(Event)
-
-    def __init__(self, controller):
-        self.controller = controller
-        self.worker = None  # maintain a LoaderWorker
-        self.worker.event_ready.connect(self.handle_event)
-        self.event_queue = []
-
-        for i in range(get_config().preload_number):
-            self.preload_another()
-
-        self.events = []  # heapq of ALL events
-        #TODO: load events
-
-    def preload_another(self):
-        #TODO: refresh list of events
-        if not self.events:
-            logger.debug("No events")
-            return
-        ev = heapq.heappop(self.events)
-        logger.debug("Preloading %s; queuing" % str(ev))
-        self.worker_queue.push(ev)
-
-    #TODO: gestisci gli eventi e i loro timer
-    def handle_event(self, event):
-        heapq.heappush(self.event_queue, event)
 
 
 class Controller(QtCore.QObject):
