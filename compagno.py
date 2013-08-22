@@ -1,5 +1,7 @@
 """
 This is Compagno Automagico, the main loop
+
+DEPRECATED: see the controller.py to understand the new structure
 """
 
 import sys
@@ -10,7 +12,6 @@ signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 from PyQt4 import QtCore
 from PyQt4.QtCore import SIGNAL
-from PyQt4.phonon import Phonon
 
 from bobina import get_bobina
 from player import QtPlayer as Player
@@ -26,17 +27,16 @@ def main():
     #player.enqueue(loop_next())
     player.media.stop()
     player.media.clear()
-    player.media.setCurrentSource(Phonon.MediaSource(loop_next()))
 
     def on_finished(*args):
         logger.debug('finished!')
         assert player.media.state() == 1
-        player.media.stop()
-        player.media.clear()
-        player.media.setCurrentSource(Phonon.MediaSource(loop_next()))
-        player.media.play()
+        assert len(player.media.queue()) == 0
+        n = loop_next()
+        player.now_play(n)
+
     player.media.finished.connect(on_finished)
-    player.media.play()
+    player.now_play(loop_next())
 
 
 class Tamarradio(QtCore.QCoreApplication):
@@ -48,6 +48,7 @@ class Tamarradio(QtCore.QCoreApplication):
         QtCore.QTimer.singleShot(0, self, SIGNAL('start_app()'))
 
 if __name__ == '__main__':
+    print("You are using compagno.py, which is DEPRECATED")
     logging.basicConfig(level=logging.DEBUG)
     logger.info('start')
     app = Tamarradio(sys.argv)

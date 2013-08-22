@@ -2,16 +2,8 @@ import os
 import logging
 logger = logging.getLogger(__name__)
 
-import config
 from queue import Queue
 _bobina = None
-
-
-def get_bobina():
-    global _bobina
-    if _bobina is None:
-        _bobina = Bobina(config.bobina_path)
-    return _bobina
 
 
 class Bobina:
@@ -34,6 +26,7 @@ class Bobina:
         #TODO: make some sense out of it
         logger.debug("prefetching %d" % n)
         for i in range(n):
+            #TODO: random.choice facile da usare, ma cosi' e' piu' testabile!
             try:
                 el = self.library.file_list[self.library_index]
             except IndexError:
