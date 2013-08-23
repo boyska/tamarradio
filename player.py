@@ -23,14 +23,24 @@ class QtPlayer(QObject):
         self.media = Phonon.MediaObject()
         Phonon.createPath(self.media, Phonon.AudioOutput(Phonon.MusicCategory,
                           self))
-        self.media.finished.connect(self.empty)
+        self.media.finished.connect(self._on_finished)
+
+        assert self.media.state() == 1
+        assert len(self.media.queue()) == 0
+        self.media.stop()
+        self.media.clear()
+
+    def _on_finished(self):
+        self.empty.emit()
 
     def enqueue(self, filename):
         src = Phonon.MediaSource(filename)
-        logger.debug('accodo %s' % filename)
+        logger.debug('enqueue %s' % filename)
         self.media.enqueue(src)
 
     def now_play(self, audio):
         logger.debug("Now playing %s" % audio)
+        assert self.media.state() == 1
+        assert len(self.media.queue()) == 0
         self.media.setCurrentSource(Phonon.MediaSource(audio))
         self.media.play()

@@ -1,3 +1,5 @@
+import signal
+signal.signal(signal.SIGINT, signal.SIG_DFL)
 import logging
 logger = logging.getLogger(__name__)
 
@@ -27,19 +29,23 @@ class Controller(QtCore.QObject):
 
         self.last_event = None
 
+    def start(self):
+        self.on_empty()
+
     def on_event(self, ev):
         logger.info("Bell rang " + str(ev))
         self.last_event = ev
 
     def on_empty(self):
+        logger.info("Playlist empty, need to fill")
         last = self.last_event
         self.last_event = None
         if last is None:
             next_audio = self.bobina.get_next()
-            logger.info("Next song is from Bobina")
+            logger.info("Next audio is %s, from Bobina" % next_audio)
         else:
-            next_audio = last.get_audio()
-            logger.info("Next song is audio %s from event %s" %
+            next_audio = last.audio
+            logger.info("Next audio is %s, from Event %s" %
                         (next_audio, last))
 
         self.player.now_play(next_audio)
@@ -52,13 +58,16 @@ class Tamarradio(QtCore.QCoreApplication):
         self.args = args
         QtCore.QCoreApplication.__init__(self, *args)
         self.setApplicationName('tamarradio')
+        QtCore.QTimer.singleShot(1000, self, QtCore.SIGNAL('really_run()'))
         QtCore.QTimer.singleShot(0, self, QtCore.SIGNAL('start_app()'))
+
+_c = None
 
 
 def main():
     global _c
     _c = Controller()
-_c = None
+    app.connect(app, QtCore.SIGNAL('really_run()'), _c.start)
 
 if __name__ == '__main__':
     import sys

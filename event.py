@@ -47,6 +47,14 @@ class EventLoader(QtCore.QObject):
         logger.debug("%s instantiating" % self.__class__.__name__)
         self.events = set()
         self.path = get_config().events_path
+        self.watch = QtCore.QFileSystemWatcher()
+        for d in self.path:
+            self.watch.addPath(d)
+        self.watch.directoryChanged.connect(self.on_change)
+
+    def on_change(self, what):
+        logger.info("Event dir changed!")
+        self.rescan()
 
     def rescan(self):
         logger.debug("scanning event path")
