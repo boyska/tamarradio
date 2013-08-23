@@ -19,6 +19,7 @@ class QtPlayer(QObject):
 
     def __init__(self):
         QObject.__init__(self)
+        logger.debug("%s instantiating" % self.__class__.__name__)
         self.media = Phonon.MediaObject()
         Phonon.createPath(self.media, Phonon.AudioOutput(Phonon.MusicCategory,
                           self))

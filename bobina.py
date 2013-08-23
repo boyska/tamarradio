@@ -3,13 +3,16 @@ import logging
 logger = logging.getLogger(__name__)
 
 from queue import Queue
+
+from config_manager import get_config
 _bobina = None
 
 
 class Bobina:
     """A Bobina manages the default random dir(s), with prefetching"""
-    def __init__(self, dirs):
-        self.library = AudioLibrary(dirs)
+    def __init__(self):
+        logger.debug("%s instantiating" % self.__class__.__name__)
+        self.library = AudioLibrary(get_config().bobina_path)
         self.pool = Queue()
         self.library_index = 0
 
@@ -40,6 +43,7 @@ class Bobina:
 class AudioLibrary:
     """Indexes some directories"""
     def __init__(self, dirs):
+        logger.debug("%s instantiating" % self.__class__.__name__)
         self.dirs = dirs
         self.file_list = []
 
