@@ -1,24 +1,44 @@
 import os
 from datetime import datetime
 import functools
-import heapq
+from heapq import heappush, heappop
 import logging
 logger = logging.getLogger(__name__)
 
 from PyQt4 import QtCore
-
-from controller import get_config
 
 
 def time_parse(s):
     return datetime.strptime(s, r'%Y-%m-%d-%H-%M-%S')
 
 
+@functools.total_ordering
+class Bell:
+    def __init__(self, alarm, audio):
+        self.alarm = alarm
+        self.audio = audio
+
+    def __lt__(self, other):
+        # a duck is crying for this "isinstance"
+        # wait: it's not a duck, but it squaws like a duck...
+        if(isinstance(other, datetime)):
+            return self.alarm < other
+        if self.alarm < other.alarm:
+            return True
+        if self.alarm > other.alarm:
+            return False
+
+        return hash(self.audio) < hash(other.audio)
+
+    def __str__(self):
+        return 'Bell <%s, %s>' % (self.audio, str(self.time))
+
+
 class EventLoader:
     '''Discovers new events definition and produces ready-to-play Bells (that
     is, their action is not dependent on slow I/O operations such as network
     access)'''
-    new_event = QtCore.pyqtSignal()
+    bell_ready = QtCore.pyqtSignal()
 
     def __init__(self, path):
         self.events = set()
@@ -38,56 +58,53 @@ class EventLoader:
                             date = time_parse(base)
                             ev = Bell(date, os.path.join(root, f))
                             if ev not in self.events:
-                                self.new_event(ev)
+                                self.bell_ready(ev)
                         except Exception as exc:
                             logger.debug("Event %s skipped: %s" % (f, exc))
                             pass
 
 
-@functools.total_ordering
-class Bell:
-    def __init__(self, alarm, action):
-        self.alarm = alarm
-        self.action = action
-
-    def __lt__(self, other):
-        # a duck is crying for this "isinstance"
-        # wait: it's not a duck, but it squaws like a duck...
-        if(isinstance(other, datetime)):
-            return self.alarm < other
-        return self.alarm < other.alarm
-
-    def __str__(self):
-        return 'Event <%s, %s>' % (self.name, str(self.time))
-
-
 class EventMonitor(QtCore.QObject):
-    '''When a new ready-to-play Event is available, handle it: that is, trigger
+    '''When a new ready-to-play Bell is available, handle it: that is, trigger
     its alarm at the right moment
     '''
-    event_now = QtCore.pyqtSignal(Bell)
+    bell_now = QtCore.pyqtSignal(Bell)
 
     def __init__(self, controller):
         self.controller = controller
-        self.worker = None  # maintain a LoaderWorker
-        self.worker.event_ready.connect(self.handle_event_ready)
-        self.event_queue = []
+        self.event_loader = EventLoader(self)
+        self.event_loader.bell_ready.connect(self.on_bell_ready)
 
-        for i in range(get_config().preload_number):
-            self.preload_another()
+        self.bell_queue = []
 
-        self.events = []  # heapq of ALL events
-        #TODO: load events
+        self.waiting_bell = None
+        self.current_timer = None
 
-    def preload_another(self):
-        #TODO: refresh list of events
-        if not self.events:
-            logger.debug("No events")
+    def on_timer_expired(self, timer):
+        self.bell_now.emit(self.waiting_bell)
+        while self.bell_queue[0] < datetime.now():
+            self.bell_now.emit(heappop(self.bell_queue))
+        self.check_timers()
+
+    def on_bell_ready(self, bell):
+        if bell.time < datetime.now():  # + timedelta(seconds=10)
             return
-        ev = heapq.heappop(self.events)
-        logger.debug("Preloading %s; queuing" % str(ev))
-        self.worker_queue.push(ev)
+        heappush(self.bell_queue, bell)
+        self.check_timers()
 
-    #TODO: gestisci gli eventi e i loro timer
-    def handle_event_ready(self, event):
-        heapq.heappush(self.event_queue, event)
+    def check_timers(self):
+        def set_timer(bell):
+            delta = bell.time - datetime.now()
+            self.current_timer = QtCore.QTimer()
+            self.current_timer.setInterval(delta)
+            self.current_timer.setSingleShot(True)
+            self.waiting_bell = bell
+            self.current_timer.start()
+
+        if self.waiting_bell is None:
+            if self.bell_queue:
+                set_timer(heappop(self.bell_queue))
+        else:
+            if self.bell_queue and self.bell_queue[0] < self.waiting_bell:
+                self.current_timer.stop()
+                set_timer(heappop(self.bell_queue))
