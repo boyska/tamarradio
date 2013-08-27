@@ -1,12 +1,24 @@
 import sys
+import logging
 
-
-# import icalendar
-# from icalendar import Calendar, Event
-
-import vobject
+import icalendar
 
 class myical:
+	def __init__(self,fname):
+		self.fname = fname
+		self.cal = icalendar.Calendar.from_ical(open(self.fname,'rb').read())
+
+	def show(self):
+		for component in self.cal.walk():
+			print component
+
+
+sys.exit()
+
+# esempio implementato con vobject
+import vobject
+
+class vobjectcal:
 	def __init__(self, fname):
 		self.fname = fname
 		self.cal = vobject.readOne( open(self.fname, 'rb').read() )
@@ -30,7 +42,14 @@ class myical:
 
 
 if __name__ == "__main__":
-	m = myical(sys.argv[1])
+
+	a = myical( sys.argv[1] )
+	a.show()
+	
+
+	sys.exit()
+
+	m = vobjectical(sys.argv[1])
 	m.lista()
 	m.det()
 
