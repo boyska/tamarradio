@@ -4,6 +4,7 @@ import functools
 from heapq import heappush, heappop
 import logging
 logger = logging.getLogger(__name__)
+from log import cls_logger
 
 from PyQt4 import QtCore
 
@@ -42,6 +43,7 @@ class EventLoader(QtCore.QObject):
     access)'''
     bell_ready = QtCore.pyqtSignal(Bell)
 
+    @cls_logger
     def __init__(self):
         QtCore.QObject.__init__(self)
         logger.debug("%s instantiating" % self.__class__.__name__)
@@ -53,11 +55,11 @@ class EventLoader(QtCore.QObject):
         self.watch.directoryChanged.connect(self.on_change)
 
     def on_change(self, what):
-        logger.info("Event dir changed!")
+        self.log.info("Event dir changed!")
         self.rescan()
 
     def rescan(self):
-        logger.debug("scanning event path")
+        self.log.debug("scanning event path")
         for d in self.path:
             for root, subfolders, files in os.walk(d):
                 for f in files:
@@ -72,9 +74,10 @@ class EventLoader(QtCore.QObject):
                             if ev not in self.events:
                                 #TODO: worker!
                                 self.bell_ready.emit(ev)
-                                logger.info("event found in %s: %s" % (f, ev))
+                                self.log.info("event found in %s: %s" %
+                                              (f, ev))
                         except Exception as exc:
-                            logger.debug("Event %s skipped: %s" % (f, exc))
+                            self.log.debug("Event %s skipped: %s" % (f, exc))
                             pass
 
 
@@ -84,9 +87,10 @@ class EventMonitor(QtCore.QObject):
     '''
     bell_now = QtCore.pyqtSignal(Bell)
 
+    @cls_logger
     def __init__(self, controller):
         QtCore.QObject.__init__(self)
-        logger.debug("%s instantiating" % self.__class__.__name__)
+        self.log.debug("%s instantiating" % self.__class__.__name__)
         self.controller = controller
         self.event_loader = EventLoader()
 
@@ -119,8 +123,8 @@ class EventMonitor(QtCore.QObject):
             self.waiting_bell = bell
             self.current_timer.timeout.connect(self.on_timer_expired)
             self.current_timer.start()
-            logger.debug("new timer set: %s (-%d s)" %
-                         (str(bell.time), delta.total_seconds()))
+            self.log.debug("new timer set: %s (-%d s)" %
+                           (str(bell.time), delta.total_seconds()))
 
         if self.waiting_bell is None:
             if self.bell_queue:

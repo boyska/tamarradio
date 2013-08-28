@@ -5,13 +5,15 @@ logger = logging.getLogger(__name__)
 from queue import Queue
 
 from config_manager import get_config
+from log import cls_logger
 _bobina = None
 
 
 class Bobina:
     """A Bobina manages the default random dir(s), with prefetching"""
+    @cls_logger
     def __init__(self):
-        logger.debug("%s instantiating" % self.__class__.__name__)
+        self.log.debug("%s instantiating" % self.__class__.__name__)
         self.library = AudioLibrary(get_config().bobina_path)
         self.pool = Queue()
         self.library_index = 0
@@ -20,9 +22,9 @@ class Bobina:
 
     def get_next(self):
         audio = self.pool.get_nowait()
-        logger.debug("got %s from pool" % audio)
+        self.log.debug("got %s from pool" % audio)
         self.prefetch()
-        return audio
+        return os.path.abspath(audio)
 
     def prefetch(self, n=1):
         """run a background process to get `n` new audio"""
@@ -43,8 +45,9 @@ class Bobina:
 
 class AudioLibrary:
     """Indexes some directories"""
+    @cls_logger
     def __init__(self, dirs):
-        logger.debug("%s instantiating" % self.__class__.__name__)
+        self.log.debug("%s instantiating" % self.__class__.__name__)
         self.dirs = dirs
         self.file_list = []
 

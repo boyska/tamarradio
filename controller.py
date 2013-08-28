@@ -1,10 +1,12 @@
 import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 import logging
-logger = logging.getLogger(__name__)
 
 from PyQt4 import QtCore
 
+import log
+logging.setLoggerClass(log.ColoredLogger)
+logger = logging.getLogger(__name__)
 from player import QtPlayer
 from bobina import Bobina
 from event import EventMonitor
@@ -18,9 +20,10 @@ class Controller(QtCore.QObject):
     # just before exiting, to do some cleaning
     closing = QtCore.pyqtSignal()
 
+    @log.cls_logger
     def __init__(self):
         QtCore.QObject.__init__(self)
-        logger.debug("%s instantiating" % self.__class__.__name__)
+        self.log.debug("%s instantiating" % self.__class__.__name__)
         self.player = QtPlayer()
         self.bobina = Bobina()
         self.event_monitor = EventMonitor(self)
@@ -33,19 +36,19 @@ class Controller(QtCore.QObject):
         self.on_empty()
 
     def on_event(self, ev):
-        logger.info("Bell rang " + str(ev))
+        self.log.info("Bell rang " + str(ev))
         self.last_event = ev
 
     def on_empty(self):
-        logger.info("Playlist empty, need to fill")
+        self.log.debug("Playlist empty, need to fill")
         last = self.last_event
         self.last_event = None
         if last is None:
             next_audio = self.bobina.get_next()
-            logger.info("Next audio is %s, from Bobina" % next_audio)
+            self.log.info("Next audio is %s, from Bobina" % next_audio)
         else:
             next_audio = last.audio
-            logger.info("Next audio is %s, from Event %s" %
+            self.log.info("Next audio is %s, from Event %s" %
                         (next_audio, last))
 
         self.player.now_play(next_audio)
@@ -71,8 +74,7 @@ def main():
 
 if __name__ == '__main__':
     import sys
-
-    logging.basicConfig(level=logging.DEBUG)
+    #logging.basicConfig(level=logging.DEBUG)
     logger.info('start')
     app = Tamarradio(sys.argv)
     app.connect(app, QtCore.SIGNAL('start_app()'), main)
