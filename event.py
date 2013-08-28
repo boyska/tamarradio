@@ -71,7 +71,7 @@ class EventLoader(QtCore.QObject):
                             base = f.split('.')[0]
                             date = time_parse(base)
                             ev = Bell(date, os.path.join(root, f))
-                            if ev not in self.events:
+                            if ev > datetime.now() and ev not in self.events:
                                 #TODO: worker!
                                 self.bell_ready.emit(ev)
                                 self.log.info("event found in %s: %s" %
@@ -105,16 +105,21 @@ class EventMonitor(QtCore.QObject):
         self.bell_now.emit(self.waiting_bell)
         while self.bell_queue and self.bell_queue[0] < datetime.now():
             self.bell_now.emit(heappop(self.bell_queue))
+        self.waiting_bell = None
         self.check_timers()
 
     def on_bell_ready(self, bell):
-        logger.debug("new bell ready: %s" % bell)
+        self.log.debug("new bell ready: %s" % bell)
         if bell.time < datetime.now():  # + timedelta(seconds=10)
+            self.log.debug("bell was too old! %s" % bell)
             return
         heappush(self.bell_queue, bell)
         self.check_timers()
 
     def check_timers(self):
+        if not self.bell_queue:
+            return
+
         def set_timer(bell):
             delta = bell.time - datetime.now()
             self.current_timer = QtCore.QTimer()
@@ -127,9 +132,8 @@ class EventMonitor(QtCore.QObject):
                            (str(bell.time), delta.total_seconds()))
 
         if self.waiting_bell is None:
-            if self.bell_queue:
-                set_timer(heappop(self.bell_queue))
+            set_timer(heappop(self.bell_queue))
         else:
-            if self.bell_queue and self.bell_queue[0] < self.waiting_bell:
+            if self.bell_queue[0] < self.waiting_bell:
                 self.current_timer.stop()
                 set_timer(heappop(self.bell_queue))
