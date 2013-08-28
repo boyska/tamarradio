@@ -22,16 +22,34 @@ class QtPlayer(QObject):
     @cls_logger
     def __init__(self):
         QObject.__init__(self)
-        logger.debug("%s instantiating" % self.__class__.__name__)
+        self.log.debug("%s instantiating" % self.__class__.__name__)
+        self.reset()
+        # uberdebug
+        self.media.stateChanged.connect(self._on_state_changed)
+        self.media.currentSourceChanged.connect(self._on_source_changed)
+
+        self.reset()
+
+    def _on_state_changed(self, new, old):
+        self.log.debug("STATE %d -> %d" % (old, new))
+
+    def _on_source_changed(self, src):
+        self.log.debug("SRC %s [%s]" % (str(src), src.fileName()))
+
+    def reset(self):
         self.media = Phonon.MediaObject()
+        self.media.finished.connect(self._on_finished)
         Phonon.createPath(self.media, Phonon.AudioOutput(Phonon.MusicCategory,
                           self))
-        self.media.finished.connect(self._on_finished)
-
-        assert self.media.state() == 1
-        assert len(self.media.queue()) == 0
         self.media.stop()
         self.media.clear()
+        assert self.media.state() == 1
+        assert len(self.media.queue()) == 0
+
+    def _on_error(self):
+        self.log.warning("Error playing! %s [%s]" %
+                         (self.media.errorType(), self.media.errorString()))
+        self._on_finished()
 
     def _on_finished(self):
         self.empty.emit()
@@ -47,3 +65,10 @@ class QtPlayer(QObject):
         src = Phonon.MediaSource(audio)
         self.media.setCurrentSource(src)
         self.media.play()
+
+        if not self.media.currentSource().fileName() == audio:
+            self.log.debug("should be playing %s but is not" % audio)
+            self._on_error()
+        else:
+            self.log.debug("Ok, correctly playing %s (%s)" %
+                           (self.media.currentSource(), audio))
