@@ -9,6 +9,7 @@ __all__ = ['Event']
 Base = declarative_base()
 
 
+#TODO: created Column
 class Event(Base):
     __tablename__ = 'event'
     id = Column(Integer, primary_key=True)
