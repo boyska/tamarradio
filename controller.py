@@ -5,6 +5,9 @@ import logging
 from PyQt4 import QtCore
 
 import log
+# TODO: read settings from a logging.ini, where, basing on classname, level,
+# style (colored,format), propagate and stream (that is, file/output) can be
+# changed on a fine-grained level
 logging.setLoggerClass(log.ColoredLogger)
 logger = logging.getLogger(__name__)
 from player import QtPlayer
@@ -26,7 +29,7 @@ class Controller(QtCore.QObject):
         self.log.debug("%s instantiating" % self.__class__.__name__)
         self.player = QtPlayer()
         self.bobina = Bobina()
-        self.event_monitor = EventMonitor(self)
+        self.event_monitor = EventMonitor()
         self.event_monitor.bell_now.connect(self.on_event)
         self.player.empty.connect(self.on_empty)
 
@@ -49,7 +52,7 @@ class Controller(QtCore.QObject):
         else:
             next_audio = last.audio
             self.log.info("Next audio is %s, from Event %s" %
-                        (next_audio, last))
+                          (next_audio, last))
 
         self.player.now_play(next_audio)
 

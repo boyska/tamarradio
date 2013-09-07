@@ -10,12 +10,13 @@ Base = declarative_base()
 class Alarm(Base):
     __tablename__ = 'alarm'
     id = Column(Integer, primary_key=True)
+    #TODO: aggiungere colonna "expired" per segnare gli scaduti (query piu' efficiente)
 
     def __init__(self, event):
         self.event_id = event.id
 
     def next_ring(self, current_time=None):
-        '''if current_time is None, it is now()'''
+        '''if current_time is None, it is now(); returns the next time it will ring; or None if it will not anymore'''
         raise NotImplementedError()
 
     def has_ring(self, time=None):
@@ -80,6 +81,7 @@ class FrequencyAlarm(Alarm):
             return None
         if current_time < self.start:
             return self.start
+        assert self.start <= current_time <= self.end
         n_interval = (current_time - self.start).total_seconds() // self.interval
         ring = self.start + timedelta(seconds=self.interval * n_interval)
         if ring == current_time:

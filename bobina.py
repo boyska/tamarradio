@@ -49,6 +49,8 @@ class AudioLibrary:
     def __init__(self, dirs):
         self.log.debug("%s instantiating" % self.__class__.__name__)
         self.dirs = dirs
+        #This implementation is highly inefficient, because it does not rely on
+        #an external file, and consumes lot of memory
         self.file_list = []
 
         self.scan()
@@ -59,5 +61,6 @@ class AudioLibrary:
             for root, subfolders, files in os.walk(d):
                 for f in files:
                     if f.lower().endswith('.wav'):
-                        self.file_list.append(os.path.join(root, f))
+                        self.file_list.append(
+                            os.path.abspath(os.path.join(root, f)))
         self.file_list.sort()

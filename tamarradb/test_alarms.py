@@ -21,7 +21,7 @@ def test_freq_creations():
 
 @timed(.1)
 def test_single_ring():
-    dt = now + timedelta(days=1)
+    dt = now + days(1)
     s = SingleAlarm(dt)
     eq_(s.next_ring(),  dt)
     eq_(s.next_ring(now),  dt)
@@ -29,6 +29,7 @@ def test_single_ring():
     assert s.next_ring(now + days(2)) is None
     assert s.has_ring(dt)
     assert not s.has_ring(now)
+    assert not s.has_ring(now + days(2))
 
 
 @timed(.1)
@@ -46,7 +47,7 @@ def test_freq_ring():
     print(now, "NOW")
     assert f.next_ring(now) is not None
     assert f.next_ring(now) != now
-    assert not now in f.all_rings(now)
+    assert now not in f.all_rings(now)
     allr = list(f.all_rings(now))
     eq_(len(allr), 24)
 

@@ -38,15 +38,25 @@ class Bell:
 
 
 class EventLoader(QtCore.QObject):
-    '''Discovers new events definition and produces ready-to-play Bells (that
-    is, their action is not dependent on slow I/O operations such as network
-    access)'''
+    '''
+    It has two duties:
+    * discovering new events definition (on rescan, which could be manually
+      invoked, or called by inotify)
+    * produces ready-to-play Bells (that is, their action is not anymore
+      dependent on slow I/O operations such as network access) and emit
+      bell_ready accordingly
+    '''
+    # Note: bell_ready is NOT emitted at the time specified by the alarm;
+    # instead, it is emitted whem its data is cached; it could be long before
+    # the actual time of the alarm.
     bell_ready = QtCore.pyqtSignal(Bell)
 
     @cls_logger
     def __init__(self):
         QtCore.QObject.__init__(self)
         logger.debug("%s instantiating" % self.__class__.__name__)
+        # TODO: self.libraries = \
+        # {dir, AudioLibrary(dir) for dir in os.listdir(config.libraries)}
         self.events = set()
         self.path = get_config().events_path
         self.watch = QtCore.QFileSystemWatcher()
@@ -82,22 +92,26 @@ class EventLoader(QtCore.QObject):
 
 
 class EventMonitor(QtCore.QObject):
-    '''When a new ready-to-play Bell is available, handle it: that is, trigger
+    '''
+    When a new ready-to-play Bell is available, handle it: that is, trigger
     its alarm at the right moment
+
+    It does not know anything about current playing audio; and it will _always_
+    trigger bells at the correct time. Its duty of the Controller to decide
+    whether the current song should be stopped or not.
     '''
     bell_now = QtCore.pyqtSignal(Bell)
 
     @cls_logger
-    def __init__(self, controller):
+    def __init__(self):
         QtCore.QObject.__init__(self)
         self.log.debug("%s instantiating" % self.__class__.__name__)
-        self.controller = controller
         self.event_loader = EventLoader()
 
         self.waiting_bell = None
         self.current_timer = None
 
-        self.bell_queue = []
+        self.bell_queue = []  # it's a heap!
         self.event_loader.bell_ready.connect(self.on_bell_ready)
         self.event_loader.rescan()
 

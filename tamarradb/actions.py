@@ -15,12 +15,12 @@ class Action(Base):
     def __init__(self, event):
         self.event_id = event.id
 
-    def get_audio(self, controller):
+    def get_audio(self, libraries):
         '''
         The action got "hydrated" with the controller. It's however _forbidden_
         for an action to act on the player.
         An Action should approach "read-only" to the controller, reading
-        playlists and returning a list of audio files (that needs to be cached!)
+        playlists and returning a list of audio files (that needs to be cached)
         '''
         raise NotImplementedError()
 
@@ -35,6 +35,6 @@ class RandomFromPlaylistAction(Action):
         self.n = n
         self.playlist = playlist
 
-    def get_audio(self, controller):
-        pl = controller.raccolte[self.playlist].file_list
+    def get_audio(self, libraries):
+        pl = libraries[self.playlist].file_list
         return random.sample(pl, self.n)
