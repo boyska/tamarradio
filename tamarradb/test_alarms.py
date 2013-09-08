@@ -12,7 +12,7 @@ def days(n):
 
 
 def test_single_creations():
-    return SingleAlarm(datetime.now())
+    return SingleAlarm(now)
 
 
 def test_freq_creations():
