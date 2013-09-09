@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+<table class="table table-striped">
+	<thead>
+		{% block table_head %}
+		<th>Descrizione</th>
+		<th>Azione</th>
+		{% endblock %}
+	</thead>
+	<tbody>
+	{% block table_body %}
+	{% endblock %}
+	</tbody>
+</table>
+{% endblock %}

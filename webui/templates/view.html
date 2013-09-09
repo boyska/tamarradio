@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block title %}Tamarradio - View All{% endblock %}
+{% block content_title %}
+	<button class="btn"><i class="icon-pencil"></i>Edit event</button>
+	<h1>Dettagli evento<small>(ID {{event.id}})</small></h1>
+{% endblock %}
+{% block content %}
+	<p>{{event.description}}</p>
+	<h2>Alarm<small>(ID {{event.alarm.id}})</small></h2>
+	{{event.alarm or "sorry, no alarm (this is a problem)"}}
+	<h2>Action<small>(ID {{event.action.id}})</small></h2>
+	{{event.action or "sorry, no action (this is a problem)"}}
+{% endblock %}
