@@ -13,7 +13,7 @@
 	{% for e in events %}
 		<tr>
 			<td>{{e.id}}</td>
-			<td>{{e.description | striphtml }}</td>
+			<td>{{e.description }}</td>
 			<td>
 				<a href="{{ url_for('event_view',
 					event_id=e.id)}}">Dettagli</a></td>

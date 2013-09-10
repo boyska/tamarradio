@@ -7,7 +7,7 @@
 {% block content %}
 	<p>{{event.description}}</p>
 	<h2>Alarm<small>(ID {{event.alarm.id}})</small></h2>
-	{{event.alarm or "sorry, no alarm (this is a problem)"}}
+	{{event.alarm | t_short or "sorry, no alarm (this is a problem)"}}
 	<h2>Action<small>(ID {{event.action.id}})</small></h2>
-	{{event.action or "sorry, no action (this is a problem)"}}
+	{{event.action | t_short or "sorry, no action (this is a problem)"}}
 {% endblock %}
