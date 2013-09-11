@@ -1,5 +1,18 @@
 {% extends "bootstrap_responsive.html" %}
 
+{% macro form_errors(form, hiddens=True) %}
+{%- if form.errors %}
+{%- for fieldname, errors in form.errors.items() %}
+{%- if (form[fieldname]|bootstrap_is_hidden_field and hiddens) or
+       (form[fieldname]|bootstrap_is_hidden_field and hiddens != 'only') %}
+{%- for error in errors %}
+<p class="error">{{error}}</p>
+{%- endfor %}
+{%- endif %}
+{%- endfor %}
+{%- endif %}
+{%- endmacro %}
+
 {% macro nav_link(endpoint, name) %}
 	{%- if endpoint == request.endpoint -%}
 	<li class="active"><a href="{{ url_for(endpoint) }}">{{ name }}</a></li>
@@ -17,7 +30,7 @@
 				    <span class="icon-bar"></span>
 				    <span class="icon-bar"></span>
 			    </a>
-			    <a class="brand" href="#">Tamarradio</a>
+			    <a class="brand" href="{{url_for('home')}}">Tamarradio</a>
 			    <div class="nav-collapse">
 				    <ul class="nav">
 							{{ nav_link('home', 'Home') }}
@@ -28,9 +41,9 @@
 		    </div>
 	    </div>
     </div>
-    {% endblock %}
+    {% endblock %}{# navbar #}
     {% block bs_content %}
-    {% endblock %}
+    {% endblock %}{# bs_content #}
 {% endblock %}
 
 

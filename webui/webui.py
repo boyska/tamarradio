@@ -2,13 +2,14 @@ import sys
 import json
 from datetime import datetime
 
-from flask import Flask, Response, render_template, abort
+from flask import Flask, Response, render_template, abort, request
 from flask_bootstrap import Bootstrap
 from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import joinedload
 
 sys.path.append('..')
 import tamarradb
+from event_form import EventForm, event_filters
 
 
 def display_tamarradb(obj):
@@ -24,10 +25,12 @@ app = Flask(__name__,
             static_folder='static',
             static_url_path='/static')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
+app.config['SECRET_KEY'] = 'foozabasdada'
 db = SQLAlchemy(app)
 bootstrap = Bootstrap(app)
 tamarradb.Base.metadata.create_all(db.engine)
 app.jinja_env.filters['t_short'] = display_tamarradb
+app.jinja_env.filters.update(event_filters())
 
 
 def _json_default(self, obj):
@@ -63,7 +66,7 @@ def api_event_view_all():
 
 #TODO: remove me, I'm just an utility for quick test
 @app.route("/test/add")
-def event_add():
+def test_event_add():
     e = tamarradb.Event('new')
     db.session.add(e)
     db.session.commit()
@@ -95,6 +98,15 @@ def event_view(event_id):
     if event is None:
         abort(404)
     return render_template('view.html', event=event)
+
+
+@app.route('/event/add', methods=('GET', 'POST'))
+def event_add():
+    form = EventForm()
+    if form.validate_on_submit():
+        return Response(json.dumps(request.form.to_dict(), indent=4),
+                        mimetype='application/json')
+    return render_template('add.html', form=form)
 
 
 @app.route("/event/edit/<id>")

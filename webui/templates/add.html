@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+{% import "bootstrap_wtf_py3.html" as wtf %}
+{% block title %}Tamarradio - Edit{% endblock %}
+{% block content %}
+ <form class="form form-horizontal" method="post">
+          {{ wtf.quick_form(form) }}
+{% endblock %}
