@@ -2,7 +2,7 @@ import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 import logging
 
-from PyQt4 import QtCore
+from PyQt4 import QtCore, QtNetwork
 
 import log
 # TODO: read settings from a logging.ini, where, basing on classname, level,
@@ -30,13 +30,17 @@ class Controller(QtCore.QObject):
         self.player = QtPlayer()
         self.bobina = Bobina()
         self.event_monitor = EventMonitor()
+        self.socket = QtNetwork.QTcpServer()
+
         self.event_monitor.bell_now.connect(self.on_event)
         self.player.empty.connect(self.on_empty)
+        self.socket.newConnection.connect(self.on_socket_message)
 
         self.last_event = None
 
     def start(self):
         self.on_empty()
+        self.socket.listen(QtNetwork.QHostAddress.LocalHost, 9999)
 
     def on_event(self, ev):
         self.log.info("Bell rang " + str(ev))
@@ -55,6 +59,28 @@ class Controller(QtCore.QObject):
                           (next_audio, last))
 
         self.player.now_play(next_audio)
+
+    def on_socket_message(self):
+        conn = self.socket.nextPendingConnection()
+
+        def handle_read():
+            try:
+                msg = conn.readAll()
+                command = msg.data().decode('utf-8').strip().split(' ', 1)[0]
+                #TODO: move processing to pluggable Command objects
+                if command == 'info':
+                    ret = 'Playing: %s' % self.player
+                if command == 'next_event':
+                    ret = str(self.last_event)
+                else:
+                    ret = 'Unsupported command: %s' % command
+                conn.write(ret)
+            except:
+                conn.write("Errors processing request")
+            finally:
+                conn.disconnectFromHost()
+
+        conn.readyRead.connect(handle_read)
 
 
 class Tamarradio(QtCore.QCoreApplication):
