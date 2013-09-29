@@ -13,6 +13,12 @@
 {%- endif %}
 {%- endmacro %}
 
+{# Take jquery from local, without asking to google #}
+{% block bootstrap_js_bottom %}
+<script src="{{ url_for("static", filename="jquery.js") }}"></script>
+<script src="{{ url_for("static", filename="add.js") }}"></script>
+{% endblock bootstrap_js_bottom %}
+
 {% macro nav_link(endpoint, name) %}
 	{%- if endpoint == request.endpoint -%}
 	<li class="active"><a href="{{ url_for(endpoint) }}">{{ name }}</a></li>

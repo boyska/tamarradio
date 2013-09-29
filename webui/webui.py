@@ -1,6 +1,7 @@
 import sys
 import json
 from datetime import datetime
+from collections import defaultdict
 
 from flask import Flask, Response, render_template, abort, request
 from flask_bootstrap import Bootstrap
@@ -104,7 +105,23 @@ def event_view(event_id):
 def event_add():
     form = EventForm()
     if form.validate_on_submit():
-        return Response(json.dumps(request.form.to_dict(), indent=4),
+        def recursive_defaultdict():
+            return defaultdict(recursive_defaultdict)
+        d = defaultdict(recursive_defaultdict)
+        d.update(request.form.to_dict())
+        # reorganize subforms
+        for k, v in list(d.items()):
+            if '-' in k:
+                path = k.split('-')
+                del d[k]
+                if path[-1] == 'csrf_token':
+                    continue
+                el = d
+                for p in path[:-1]:
+                    el = el[p]
+                el[path[-1]] = v
+
+        return Response(json.dumps(d, indent=4),
                         mimetype='application/json')
     return render_template('add.html', form=form)
 

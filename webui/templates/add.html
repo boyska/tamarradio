@@ -2,6 +2,19 @@
 {% import "bootstrap_wtf_py3.html" as wtf %}
 {% block title %}Tamarradio - Edit{% endblock %}
 {% block content %}
- <form class="form form-horizontal" method="post">
+<style>
+fieldset > fieldset {
+    margin-left: 3em;
+}
+fieldset > fieldset > legend > label {
+    font-size: 110%;
+    font-weight: normal;
+}
+fieldset > legend > label {
+    font-size: 130%;
+    font-weight: bold;
+}
+</style>
+<form class="form form-horizontal" method="post">
           {{ wtf.quick_form(form) }}
 {% endblock %}
