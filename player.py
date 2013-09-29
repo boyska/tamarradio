@@ -4,6 +4,13 @@ An interface for basic play operation:
 
 The interface should _not_ reveal that it uses phonon, wrapping whatever is
 needed and providing high-level methods and events
+
+Interface:
+    * now_play('/path/to/file'): flushes playlist, set to input, play
+    * enqueue('/path/to/file')
+    * reset(): flushes playlist and stop
+Optional:
+    * get_now_playing() -> String with path
 """
 
 import logging
