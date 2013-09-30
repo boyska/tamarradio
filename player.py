@@ -43,6 +43,9 @@ class QtPlayer(QObject):
     def _on_source_changed(self, src):
         self.log.debug("SRC %s [%s]" % (str(src), src.fileName()))
 
+    def get_now_playing(self):
+        return self.media.currentSource().fileName()
+
     def reset(self):
         self.media = Phonon.MediaObject()
         self.media.finished.connect(self._on_finished)
