@@ -1,6 +1,6 @@
 from PyQt4 import QtNetwork
 from http.server import BaseHTTPRequestHandler
-from http.client import HTTPMessage
+from http.client import HTTPMessage, responses
 from io import BytesIO
 
 short_commands = {}  # name: function
@@ -69,6 +69,7 @@ class TCPCommandSocket:
 class HTTPCommandSocket(TCPCommandSocket):
     def handle_read(self, conn):
         m = HTTPMessage()
+        status = 200
         try:
             msg = conn.readAll()
             request = HTTPRequest(bytes(msg))
@@ -76,16 +77,19 @@ class HTTPCommandSocket(TCPCommandSocket):
                 command = request.path.split('/')[2]
                 args = request.path.split('/')[3:]
                 if command not in short_commands:
+                    status = 405
                     m.set_payload('command not found').as_string()
                 ret = short_commands[command](self.controller, args)
                 m.set_payload(ret)
             else:
+                status = 405
                 m.set_payload('invalid route')
         except Exception as exc:
             #TODO: 500 error
+            status = 500
             m.set_payload('error!')
             raise exc
         finally:
-            conn.write('HTTP/1.1 200 OK\n%s' % m.as_string())
+            conn.write('HTTP/1.1 %d %s\n%s' %
+                       (status, responses[status], m.as_string()))
             conn.disconnectFromHost()
-
