@@ -32,10 +32,11 @@ class Controller(QtCore.QObject):
         self.player = QtPlayer()
         self.bobina = Bobina()
         self.event_monitor = EventMonitor()
-        if get_config().socket_tcp:
-            self.tcp_socket = TCPCommandSocket(self, get_config().socket_tcp)
-        if get_config().socket_http:
-            self.http_socket = HTTPCommandSocket(self, get_config().socket_http)
+        if get_config()['SOCKET_TCP']:
+            self.tcp_socket = TCPCommandSocket(self, get_config()['SOCKET_TCP'])
+        if get_config()['SOCKET_HTTP']:
+            self.http_socket = HTTPCommandSocket(self,
+                                                 get_config()['SOCKET_HTTP'])
 
         self.event_monitor.bell_now.connect(self.on_event)
         self.player.empty.connect(self.on_empty)
@@ -88,6 +89,8 @@ if __name__ == '__main__':
     logger.info('start')
     app = Tamarradio(sys.argv)
     app.connect(app, QtCore.SIGNAL('start_app()'), main)
+    get_config().from_pyfile("default_config.py")
+    get_config().from_pyfile("/etc/tamarradio/player.cfg", silent=True)
     ret = app.exec_()
     logger.info('end %d' % ret)
     sys.exit(ret)

@@ -14,7 +14,7 @@ class Bobina:
     @cls_logger
     def __init__(self):
         self.log.debug("%s instantiating" % self.__class__.__name__)
-        self.library = AudioLibrary(get_config().bobina_path)
+        self.library = AudioLibrary(get_config()['BOBINA_PATH'])
         self.pool = Queue()
         self.library_index = 0
 

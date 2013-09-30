@@ -58,7 +58,7 @@ class EventLoader(QtCore.QObject):
         # TODO: self.libraries = \
         # {dir, AudioLibrary(dir) for dir in os.listdir(config.libraries)}
         self.events = set()
-        self.path = get_config().events_path
+        self.path = get_config()['EVENTS_PATH']
         self.watch = QtCore.QFileSystemWatcher()
         for d in self.path:
             self.watch.addPath(d)
