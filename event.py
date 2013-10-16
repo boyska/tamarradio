@@ -17,6 +17,16 @@ def time_parse(s):
 
 @functools.total_ordering
 class Bell:
+    '''
+    A Bell is a time-audio coupling.
+    The audio must be ready to be played.
+
+    There is a total ordering on Bells, which just reflects the natural
+    ordering on their time; you can also compare Bells to datetime.
+
+    A Bell is tipically produced by an EventLoader and consumed by an
+    EventMonitor.
+    '''
     def __init__(self, time, audio):
         self.time = time
         self.audio = audio
@@ -93,11 +103,10 @@ class EventLoader(QtCore.QObject):
 
 class EventMonitor(QtCore.QObject):
     '''
-    When a new ready-to-play Bell is available, handle it: that is, trigger
-    its alarm at the right moment
+    An EventMonitor emits "bell_now" signals when an event is occurring.
 
     It does not know anything about current playing audio; and it will _always_
-    trigger bells at the correct time. Its duty of the Controller to decide
+    trigger bells at the correct time. Its duty of the EventAggregator to decide
     whether the current song should be stopped or not.
     '''
     bell_now = QtCore.pyqtSignal(Bell)

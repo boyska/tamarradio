@@ -20,11 +20,6 @@ def cmd_info(controller, args):
     return 'Playing: %s' % controller.player
 
 
-@short_command("next_event")
-def cmd_nextevent(controller, args):
-    return str(controller.last_event)
-
-
 class HTTPRequest(BaseHTTPRequestHandler):
     def __init__(self, request_text):
         self.rfile = BytesIO(request_text)
@@ -47,17 +42,13 @@ class TCPCommandSocket:
     def handle_read(self, conn):
         try:
             msg = conn.readAll()
-            command = msg.data().decode('utf-8').strip().split(' ', 1)[0]
-            #TODO: move processing to pluggable Command objects
-            if command == 'info':
-                ret = 'Playing: %s' % self.controller.player
-            elif command == 'next_event':
-                ret = str(self.controller.last_event)
-            else:
-                ret = 'Unsupported command: "%s"' % command
-            conn.write(ret)
-        except:
-            conn.write("Errors processing request")
+            args = msg.data().decode('utf-8').strip().split(' ', 1)
+            command = args.pop(0)
+            if command in short_commands:
+                ret = short_commands[command](self.controller, args)
+                conn.write(ret)
+        except Exception as exc:
+            conn.write("Errors processing request\n%s" % exc)
         finally:
             conn.disconnectFromHost()
 
