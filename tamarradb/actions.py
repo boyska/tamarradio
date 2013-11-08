@@ -23,6 +23,7 @@ class RandomFromPlaylistAction(Action):
         self.playlist = playlist
 
     def get_audio(self, libraries):
+        '''Returns a list of paths to audio files'''
         pl = libraries[self.playlist].file_list
         return random.sample(pl, self.n)
 
