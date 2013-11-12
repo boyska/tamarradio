@@ -1,12 +1,24 @@
 import os
 import logging
 logger = logging.getLogger(__name__)
-
 from queue import Queue
+
+from PyQt4 import QtCore
 
 from config_manager import get_config
 from log import cls_logger
-_bobina = None
+from cacheutils import CacheCopy
+
+_libraries = {}
+
+
+def get_libraries():
+    return _libraries
+
+
+def find_libraries(path):
+    for directory in next(os.walk(path))[1]:
+        yield directory, AudioLibrary([directory])
 
 
 class Bobina:
@@ -39,8 +51,18 @@ class Bobina:
             el = self.library.file_list[self.library_index]
         self.library_index = (self.library_index + 1) % \
             len(self.library.file_list)
-        self.pool.put(el)
+        self.prepare(el)
         self.prefetch(n-1)
+
+    def prepare(self, el):
+        '''fetch an element and put into the queue'''
+        self.log.debug("Preparing %s" % el)
+        copy_process = CacheCopy(el)
+
+        QtCore.QObject.connect(copy_process, QtCore.SIGNAL('copied(QString)'),
+                               lambda path: self.pool.put(path),
+                               QtCore.Qt.QueuedConnection)
+        copy_process.start()
 
 
 class AudioLibrary:
