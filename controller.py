@@ -8,10 +8,9 @@ import log
 # TODO: read settings from a logging.ini, where, basing on classname, level,
 # style (colored,format), propagate and stream (that is, file/output) can be
 # changed on a fine-grained level
-logging.setLoggerClass(log.ColoredLogger)
-logger = logging.getLogger(__name__)
+logger = log.ColoredLogger(__name__)
 from player import QtPlayer
-from bobina import Bobina
+from bobina import Bobina, get_libraries, find_libraries
 from event import EventMonitor
 from command import TCPCommandSocket, HTTPCommandSocket, short_command
 from config_manager import get_config
@@ -120,12 +119,15 @@ def main():
 
 if __name__ == '__main__':
     import sys
-    #logging.basicConfig(level=logging.DEBUG)
+    #logging.basicConfig(filename=None, level=logging.DEBUG)
+    log.ColoredLogger.default_level = logging.DEBUG
     logger.info('start')
     app = Tamarradio(sys.argv)
     app.connect(app, QtCore.SIGNAL('start_app()'), main)
     get_config().from_pyfile("default_config.py")
     get_config().from_pyfile("/etc/tamarradio/player.cfg", silent=True)
+    for d in get_config()['LIBRARIES_PATH']:
+        get_libraries().update(find_libraries(d))
     ret = app.exec_()
     logger.info('end %d' % ret)
     sys.exit(ret)

@@ -12,6 +12,7 @@ from sqlalchemy.orm import sessionmaker
 from PyQt4 import QtCore
 
 from log import cls_logger
+from bobina import get_libraries
 from config_manager import get_config
 import tamarradb
 import cacheutils
@@ -87,6 +88,12 @@ class DirEventLoader(QtCore.QObject):
         self.log.info("Event dir changed!")
         self.rescan()
 
+    def reload_event(self, id, bell):
+        cls, filename = id.split('-', 2)
+        if cls != self.__class__.__name__:
+            return
+        self.log.debug("Reloading %s but will no more play" % filename)
+
     def rescan(self):
         self.log.debug("scanning event path")
         for d in self.path:
@@ -99,12 +106,15 @@ class DirEventLoader(QtCore.QObject):
                         try:
                             base = f.split('.')[0]
                             date = time_parse(base)
-                            ev = Bell(date, os.path.join(root, f))
-                            if ev > datetime.now() and ev not in self.events:
+                            bell = Bell(date, os.path.join(root, f))
+                            if bell > datetime.now() and \
+                               bell not in self.events:
                                 #TODO: worker!
-                                self.bell_ready.emit(ev)
+                                self.bell_ready.emit(bell)
+                                self.store.add(self.__class__.__name__ + '-'
+                                               + f, bell)
                                 self.log.info("event found in %s: %s" %
-                                              (f, ev))
+                                              (f, bell))
                         except Exception as exc:
                             self.log.debug("Event %s skipped: %s" % (f, exc))
                             pass
@@ -116,7 +126,7 @@ class DBEventLoader(QtCore.QObject):
     @cls_logger
     def __init__(self):
         QtCore.QObject.__init__(self)
-        logger.debug("%s instantiating" % self.__class__.__name__)
+        self.log.debug("%s instantiating" % self.__class__.__name__)
         #TODO: self.connection = config.boh
         self.engine = create_engine(get_config()['DB'])
         tamarradb.Base.metadata.create_all(self.engine)
@@ -188,8 +198,8 @@ class BellCacher(QtCore.QObject):
                 self.log.info("Check falsed for action %s" % self.action)
                 return
         self.log.debug("Caching %s" % self.action)
-        for path in self.action.get_audio(None):  # TODO: vanno passate le libraries!
-            cached = cacheutils.safecopy(path)
+        for path in self.action.get_audio(get_libraries()):
+            cached = cacheutils.CacheCopy(path).run()
             b = Bell(self.time, cached)
             if self.ready is not None:
                 self.ready(b)

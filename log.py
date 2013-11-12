@@ -43,9 +43,10 @@ class ColoredLogger(logging.Logger):
     FORMAT = "[%(asctime)s][$BOLD%(name)-12s$RESET %(levelname)s] " + \
              "%(message)s ($BOLD%(filename)s$RESET:%(lineno)d)"
     COLOR_FORMAT = formatter_message(FORMAT, True)
+    default_level = logging.DEBUG
 
     def __init__(self, name):
-        logging.Logger.__init__(self, name, logging.DEBUG)
+        logging.Logger.__init__(self, name, self.default_level)
 
         color_formatter = ColoredFormatter(self.COLOR_FORMAT)
 
@@ -53,12 +54,18 @@ class ColoredLogger(logging.Logger):
         console.setFormatter(color_formatter)
 
         self.addHandler(console)
-        return
 
 
 def cls_logger(f):
     def new_init(self, *args, **kwargs):
         self.log = logging.getLogger(self.__class__.__name__)
+        self.log.setLevel(ColoredLogger.default_level)
+
+        if not self.log.handlers:
+            color_formatter = ColoredFormatter(ColoredLogger.COLOR_FORMAT)
+            console = logging.StreamHandler()
+            console.setFormatter(color_formatter)
+            self.log.addHandler(console)
 
         f(self, *args, **kwargs)
 
