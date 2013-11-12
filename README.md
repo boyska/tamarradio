@@ -3,6 +3,20 @@ Tamarradio
 
 Sorry, this readme is mostly italian by now. Someday we'll translate it.
 
+
+Features
+---------
+
+There are a lot of radio schedulers out there; we aimed to write one that:
+* Allows different kind of actions and alarms
+* Allows events to be handled intelligently: they can wait for the current
+  song to finish, or break in the middle, as you prefer
+* Allows to change (interactively or programmatically) the way with which
+  events are handled. For example, we want to completely _disable_ events sometimes.
+* Aggressively caches files; this make network storage much more reliable
+* is headless, but has many ways to connect: tcp commands, HTTP API, WebUI for
+  the DB
+
 Entita'
 ----------
 
