@@ -41,13 +41,29 @@ def test_single_all():
     eq_(list(s.all_rings(now + days(2))),  [])
 
 
+def test_freq_short():
+    f = FrequencyAlarm(now - days(1), 10, now + days(1))
+    print(now, "NOW")
+    assert now in f.all_rings(now - days(3))
+    assert f.next_ring(now) is not None
+    assert f.next_ring(now) != now
+    assert f.next_ring(now) > now
+    assert now not in f.all_rings(now)
+    for r in f.all_rings(now):
+        assert r > now
+
+
 @timed(0.2)
 def test_freq_ring():
     f = FrequencyAlarm(now - days(1), 3600, now + days(1))
     print(now, "NOW")
+    assert now in f.all_rings(now - days(3))
     assert f.next_ring(now) is not None
     assert f.next_ring(now) != now
+    assert f.next_ring(now) > now
     assert now not in f.all_rings(now)
+    for r in f.all_rings(now):
+        assert r > now
     allr = list(f.all_rings(now))
     eq_(len(allr), 24)
 

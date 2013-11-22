@@ -70,7 +70,9 @@ class FrequencyAlarm(Alarm):
             assert self.start <= current_time <= self.end
         else:
             assert self.start <= current_time
-        n_interval = (current_time - self.start).total_seconds() // self.interval
+        n_interval = (
+            (current_time - self.start).total_seconds() // self.interval
+            ) + 1
         ring = self.start + timedelta(seconds=self.interval * n_interval)
         if ring == current_time:
             ring += timedelta(seconds=self.interval)
