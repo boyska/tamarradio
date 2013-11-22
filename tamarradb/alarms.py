@@ -62,16 +62,19 @@ class FrequencyAlarm(Alarm):
         '''if current_time is None, it is now()'''
         if current_time is None:
             current_time = datetime.now()
-        if current_time > self.end:
+        if self.end is not None and current_time > self.end:
             return None
         if current_time < self.start:
             return self.start
-        assert self.start <= current_time <= self.end
+        if self.end is not None:
+            assert self.start <= current_time <= self.end
+        else:
+            assert self.start <= current_time
         n_interval = (current_time - self.start).total_seconds() // self.interval
         ring = self.start + timedelta(seconds=self.interval * n_interval)
         if ring == current_time:
             ring += timedelta(seconds=self.interval)
-        if ring > self.end:
+        if self.end is not None and ring > self.end:
             return None
         return ring
 
