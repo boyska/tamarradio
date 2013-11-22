@@ -117,15 +117,27 @@ def main():
     _c = Controller()
     app.connect(app, QtCore.SIGNAL('really_run()'), _c.start)
 
+
+def parse_options(args):
+    # TODO: move to argparse
+    opts = {'config': []}
+    if len(args) > 1:
+        opts['config'].append(args[1])
+    return opts
+
+
 if __name__ == '__main__':
     import sys
     #logging.basicConfig(filename=None, level=logging.DEBUG)
+    opts = parse_options(sys.argv)
     log.ColoredLogger.default_level = logging.DEBUG
     logger.info('start')
     app = Tamarradio(sys.argv)
     app.connect(app, QtCore.SIGNAL('start_app()'), main)
     get_config().from_pyfile("default_config.py")
     get_config().from_pyfile("/etc/tamarradio/player.cfg", silent=True)
+    for configfile in opts['config']:
+        get_config().from_pyfile(configfile)
     for d in get_config()['LIBRARIES_PATH']:
         get_libraries().update(find_libraries(d))
     ret = app.exec_()
