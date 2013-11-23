@@ -17,8 +17,9 @@ def get_libraries():
 
 
 def find_libraries(path):
+    path = os.path.abspath(path)
     for directory in next(os.walk(path))[1]:
-        yield directory, AudioLibrary([directory])
+        yield directory, AudioLibrary([os.path.join(path, directory)])
 
 
 class Bobina:
@@ -69,7 +70,7 @@ class AudioLibrary:
     """Indexes some directories"""
     @cls_logger
     def __init__(self, dirs):
-        self.log.debug("%s instantiating" % self.__class__.__name__)
+        self.log.debug("%s instantiating(%s)" % (self.__class__.__name__, dirs))
         self.dirs = dirs
         #This implementation is highly inefficient, because it does not rely on
         #an external file, and consumes lot of memory
@@ -80,6 +81,9 @@ class AudioLibrary:
     def scan(self):
         #TODO: cache!
         for d in self.dirs:
+            if not os.path.exists(d):
+                self.log.warn("Directory %s does not exist, skipping" % d)
+                continue
             for root, subfolders, files in os.walk(d):
                 for f in files:
                     if f.lower().endswith('.wav'):
