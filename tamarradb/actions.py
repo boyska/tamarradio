@@ -29,3 +29,7 @@ class RandomFromPlaylistAction(Action):
 
     def to_json(self):
         return {'id': self.id, 'n': self.n, 'playlist': self.playlist}
+
+    def __str__(self):
+        return 'RandomFromPlaylistAction(%d from %s)' % \
+            (self.n, self.playlist)

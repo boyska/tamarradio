@@ -92,3 +92,6 @@ class FrequencyAlarm(Alarm):
     def to_json(self):
         return {'id': self.id, 'start': self.start, 'interval': self.interval,
                 'end': self.end}
+
+    def __str__(self):
+        return 'FrequencyAlarm(every %ds)' % self.interval
