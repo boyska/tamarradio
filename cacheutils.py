@@ -15,7 +15,7 @@ from log import cls_logger, ColoredLogger
 def safecopy(path):
     log = ColoredLogger('safecopy')
     os.makedirs(get_config()['CACHE_DIR'].encode('utf-8'), exist_ok=True)
-    tmp = os.path.basename(path).encode('ascii', 'ignore').decode('ascii')
+    tmp = os.path.basename(path + '.').encode('ascii', 'ignore').decode('ascii')
     cachedir = get_config()['CACHE_DIR']
     fd, destname = mkstemp(prefix=tmp, suffix=os.path.splitext(path)[1],
                            dir=cachedir)
