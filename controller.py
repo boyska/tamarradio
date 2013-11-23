@@ -46,7 +46,8 @@ class Controller(QtCore.QObject):
         self.log.debug("Playlist empty, need to fill")
 
         next_audio = self.audio_source.get_next()
-        self.player.now_play(next_audio)
+        assert type(next_audio) is list
+        self.player.now_play_sequence(next_audio)
 
 
 class EventAggregator(QtCore.QObject):
@@ -78,6 +79,7 @@ class EventAggregator(QtCore.QObject):
         if last is None:
             next_audio = self.bobina.get_next()
             self.log.info("Next audio is %s, from Bobina" % next_audio)
+            next_audio = [next_audio]
         else:
             next_audio = last.audio
             self.log.info("Next audio is %s, from Event %s" %

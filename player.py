@@ -15,6 +15,7 @@ Optional:
 
 import logging
 logger = logging.getLogger(__name__)
+from config_manager import get_config
 
 from PyQt4.QtCore import QObject, pyqtSignal
 from PyQt4.phonon import Phonon
@@ -47,6 +48,7 @@ class QtPlayer(QObject):
         return self.media.currentSource().fileName()
 
     def reset(self):
+        self.queue = []
         self.media = Phonon.MediaObject()
         self.media.finished.connect(self._on_finished)
         Phonon.createPath(self.media, Phonon.AudioOutput(Phonon.MusicCategory,
@@ -62,12 +64,37 @@ class QtPlayer(QObject):
         self._on_finished()
 
     def _on_finished(self):
-        self.empty.emit()
+        if self.queue:
+            self.now_play(self.queue.pop(0))
+        else:
+            self.empty.emit()
 
     def enqueue(self, filename):
-        src = Phonon.MediaSource(filename)
-        self.log.debug('enqueue %s' % filename)
-        self.media.enqueue(src)
+        self.queue.append(filename)
+
+    def now_play_sequence(self, audioseq):
+        first = audioseq[0]
+        queue = audioseq[1:]
+
+        self.log.debug("Now playing %s" % first)
+        self.reset()
+        self.media.setCurrentSource(Phonon.MediaSource(first))
+
+        if queue:
+            self.log.debug("enqueuing %s" % queue)
+            for filename in queue:
+                self.enqueue(filename)
+
+        self.media.play()
+
+        if not self.media.currentSource().fileName() == first:
+            self.log.debug("should be playing %s but is not" % first)
+            self._on_error()
+        else:
+            self.log.debug("Ok, correctly playing %s (%s)" %
+                           (self.media.currentSource(), first))
+
+
 
     def now_play(self, audio):
         self.log.debug("Now playing %s" % audio)
