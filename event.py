@@ -226,7 +226,7 @@ class BellCacher(QtCore.QObject):
         for path in self.action.get_audio(get_libraries()):
             cacher = cacheutils.CacheCopy(path)
             cacher.run()
-            cache_audio.append(cacher.path)
+            cache_audio.append(cacheutils.AudioCacheFile(cacher.path))
             self.cachedFile.emit(path)
         b = Bell(self.time, cache_audio)
         self.ready.emit(b)

@@ -39,3 +39,12 @@ class CacheCopy(QtCore.QThread):
         self.path = safecopy(self.original)
         self.emit(QtCore.SIGNAL('copied(QString)'), self.path)
         return
+
+
+class AudioCacheFile(str):
+    def __new__(cls, s):
+        return super(AudioCacheFile, cls).__new__(cls, s)
+
+    def __del__(self):
+        if get_config()['CLEAN_CACHE']:
+            os.unlink(self)

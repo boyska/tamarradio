@@ -1,6 +1,6 @@
 import signal
-signal.signal(signal.SIGINT, signal.SIG_DFL)
 import logging
+import os
 
 from PyQt4 import QtCore
 
@@ -46,6 +46,10 @@ class Controller(QtCore.QObject):
         self.log.debug("Playlist empty, need to fill")
 
         next_audio = self.audio_source.get_next()
+        # This keeps the reference to the current playing Bell;
+        # it's very important not to mess with this, because the __del__ method
+        # is used to automatically remove files from cache
+        self.current = next_audio
         assert type(next_audio) is list
         self.player.now_play_sequence(next_audio)
 
@@ -77,9 +81,8 @@ class EventAggregator(QtCore.QObject):
         last = self.last_event
         self.last_event = None
         if last is None:
-            next_audio = self.bobina.get_next()
-            self.log.info("Next audio is %s, from Bobina" % next_audio)
-            next_audio = [next_audio]
+            next_audio = [self.bobina.get_next()]
+            self.log.info("Next audio is %s, from Bobina" % next_audio[0])
         else:
             next_audio = last.audio
             self.log.info("Next audio is %s, from Event %s" %
@@ -104,12 +107,20 @@ class EventAggregator(QtCore.QObject):
 class Tamarradio(QtCore.QCoreApplication):
     started = QtCore.pyqtSignal()
 
+    @log.cls_logger
     def __init__(self, *args):
         self.args = args
         QtCore.QCoreApplication.__init__(self, *args)
         self.setApplicationName('tamarradio')
+        self.aboutToQuit.connect(self.pre_quit)
         QtCore.QTimer.singleShot(1000, self, QtCore.SIGNAL('really_run()'))
         QtCore.QTimer.singleShot(0, self, QtCore.SIGNAL('start_app()'))
+
+    def pre_quit(self):
+        self.log.info("About to quit, cleaning up...")
+        for name in os.listdir(get_config()['CACHE_DIR']):
+            if name.endswith('.wav'):
+                os.unlink(os.path.join(get_config()['CACHE_DIR'], name))
 
 _c = None
 
@@ -142,6 +153,8 @@ if __name__ == '__main__':
         get_config().from_pyfile(configfile)
     for d in get_config()['LIBRARIES_PATH']:
         get_libraries().update(find_libraries(d))
+
+    signal.signal(signal.SIGINT, lambda *args: app.quit())
     ret = app.exec_()
     logger.info('end %d' % ret)
     sys.exit(ret)

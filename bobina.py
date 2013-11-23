@@ -7,7 +7,7 @@ from PyQt4 import QtCore
 
 from config_manager import get_config
 from log import cls_logger
-from cacheutils import CacheCopy
+from cacheutils import CacheCopy, AudioCacheFile
 
 _libraries = {}
 
@@ -37,7 +37,7 @@ class Bobina:
         audio = self.pool.get_nowait()
         self.log.debug("got %s from pool" % audio)
         self.prefetch()
-        return os.path.abspath(audio)
+        return AudioCacheFile(os.path.abspath(audio))
 
     def prefetch(self, n=1):
         """run a background process to get `n` new audio"""
