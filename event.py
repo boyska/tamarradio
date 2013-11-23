@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import functools
 from heapq import heappush, heappop
 from collections import defaultdict
@@ -109,12 +109,12 @@ class DirEventLoader(QtCore.QObject):
                             bell = Bell(date, os.path.join(root, f))
                             if bell > datetime.now() and \
                                bell not in self.events:
-                                #TODO: worker!
+                                #TODO: BellCacher
+                                self.log.info("event found in %s: %s" %
+                                              (f, bell))
                                 self.bell_ready.emit(bell)
                                 self.store.add(self.__class__.__name__ + '-'
                                                + f, bell)
-                                self.log.info("event found in %s: %s" %
-                                              (f, bell))
                         except Exception as exc:
                             self.log.debug("Event %s skipped: %s" % (f, exc))
                             pass
@@ -131,6 +131,7 @@ class DBEventLoader(QtCore.QObject):
         self.engine = create_engine(get_config()['DB'])
         tamarradb.Base.metadata.create_all(self.engine)
         self.visited = defaultdict(lambda: None)  # id-on-db: datetime
+        self.running_cachers = [] # they are here because they need not to expire
 
     def schedule_next(self, ev, force=False):
         '''
@@ -143,33 +144,42 @@ class DBEventLoader(QtCore.QObject):
 
         def get_timer(t):
             '''
-            Ritorna un Qtimer che suona al tempo t
+            Ritorna un QTimer che suona al tempo t
             (NON tra t secondi)
             '''
             delta = t - datetime.now()
             timer = QtCore.QTimer()
             timer.setInterval(delta.total_seconds() * 1000)
             timer.setSingleShot(True)
-            timer.start()
             return timer
 
         if force:
-            ev = session.query(tamarradb.Event).filter_by(id=id).first()
+            ev = session.query(tamarradb.Event).filter_by(id=ev.id).first()
         if ev is None:  # L'evento non esiste
             self.log.info("L'evento [%d] non e' piu' sul db" % ev.id)
             return
-        event_time = ev.alarm.next_ring()
-        if event_time < (datetime.now() + get_config().CACHING_TIME):
-            return
-        get_timer(event_time).timeout.connect(
-            lambda x: self.schedule_next(id, True))
+        now = datetime.now()
+        event_time = ev.alarm.next_ring(
+            now + timedelta(seconds=get_config()['CACHING_TIME']))
+        self.log.debug("Suona alle %s, sono le %s (tra %d secondi)" %
+                      (event_time, now, (event_time-now).total_seconds()))
+        assert event_time > \
+            (datetime.now() + timedelta(seconds=get_config()['CACHING_TIME']))
+
         cacher = BellCacher(ev.action, event_time)
+        cacher.reschedule = get_timer(event_time)
+        self.connect(cacher.reschedule, QtCore.SIGNAL('timeout()'),
+                     functools.partial(self.schedule_next, ev, True))
+        cacher.reschedule.start()
         # TODO: una funzione che controlla se il tutto esiste ancora; dobbiamo
         # definirla noi per fare dependency inversion
         cacher.checker = None
-        cacher.ready = self.bell_ready.emit
-        get_timer(event_time - get_config().CACHING_TIME).\
-            timeout.connect(cacher.run)
+        cacher.ready.connect(lambda b: self.bell_ready.emit(b))
+        cacher.timer = get_timer(event_time -
+                              timedelta(seconds=get_config()['CACHING_TIME']))
+        cacher.timer.timeout.connect(cacher.run)
+        cacher.timer.start()
+        self.running_cachers.append(cacher)
 
     def rescan(self):
         # Durante lo scan, facciamo partire due eventi:
@@ -185,12 +195,24 @@ class DBEventLoader(QtCore.QObject):
 
 
 class BellCacher(QtCore.QObject):
+    '''
+    From (action, time) creates a cached action.
+    Can be provided with a checker; a function with no arguments that decides
+    whether the bell really has to be cached or not.
+
+    For each file the "cachedFile(path)" signal will be emitted.
+    When all files are done, "ready(Bell)" signal will be emitted.
+    '''
+    cachedFile = QtCore.pyqtSignal(str)
+    ready = QtCore.pyqtSignal(Bell)
+
     @cls_logger
     def __init__(self, action, time):
+        QtCore.QObject.__init__(self)
+        self.log.info("Evvai porcoddio alle %s sonamo %s" % (time, action))
         self.action = action
         self.time = time
         self.checker = None
-        self.ready = None
 
     def run(self):
         if self.checker is not None:
@@ -198,11 +220,16 @@ class BellCacher(QtCore.QObject):
                 self.log.info("Check falsed for action %s" % self.action)
                 return
         self.log.debug("Caching %s" % self.action)
+
+        #TODO: QtConcurrent.run
+        cache_audio = []
         for path in self.action.get_audio(get_libraries()):
-            cached = cacheutils.CacheCopy(path).run()
-            b = Bell(self.time, cached)
-            if self.ready is not None:
-                self.ready(b)
+            cacher = cacheutils.CacheCopy(path)
+            cacher.run()
+            cache_audio.append(cacher.path)
+            self.cachedFile.emit(path)
+        b = Bell(self.time, cache_audio)
+        self.ready.emit(b)
 
 
 class EventMonitor(QtCore.QObject):
@@ -237,7 +264,7 @@ class EventMonitor(QtCore.QObject):
         self.waiting_bell = None
         self.check_timers()
 
-    def on_bell_ready(self, eventid, bell):
+    def on_bell_ready(self, bell):
         self.log.debug("new bell ready: %s" % bell)
         if bell.time < datetime.now():  # + timedelta(seconds=10)
             self.log.debug("bell was too old! %s" % bell)
